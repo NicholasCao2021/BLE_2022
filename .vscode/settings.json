@@ -42,7 +42,8 @@
         "typeinfo": "cpp",
         "utility": "cpp",
         "functional": "cpp",
-        "errno.h": "c"
+        "errno.h": "c",
+        "cstring": "cpp"
     },
     "C_Cpp.errorSquiggles": "Disabled"
 }

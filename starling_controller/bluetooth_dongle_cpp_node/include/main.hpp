@@ -29,6 +29,7 @@ using std::placeholders::_1;
 // {
 //     uint8_t MSB_seq, LSB_seq, state, timeout;
 // };
+class Sender;
 
 class BtMsgTranciver : public rclcpp::Node
 {
@@ -45,7 +46,7 @@ public:
     // BtMsgTranciver() : Node("bluetooth_msgs_Tranciver"), count_(0);
 
 private:
-    Sender BTsender;
+    std::shared_ptr<Sender> sender;
 
     void timer_callback();
     void timer_callback2();

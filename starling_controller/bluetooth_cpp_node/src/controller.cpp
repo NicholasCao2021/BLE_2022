@@ -112,8 +112,8 @@ void UserController::handleTargetAngle(const bluetooth_msgs::msg::TargetAngle::S
 
 void UserController::handleReceivedBtMsg(const bluetooth_msgs::msg::BluetoothDongle::SharedPtr s)
 {
-    uint8_t received_id = s->bt_id;
-    uint8_t received_counter = s->test_num;
+    uint8_t received_id = s->failed_id;
+    double received_counter = s->test_num;
     /*
 
     send a msg to handleNotifyVehicles and reset start_target_theta
@@ -121,14 +121,8 @@ void UserController::handleReceivedBtMsg(const bluetooth_msgs::msg::BluetoothDon
     if(this->system_vehicle_id > received_id)
         this->system_vehicle_id--;
     s->total_vehicles--;
-
-
-
-
-
     */
-
-    // RCLCPP_INFO(this->get_logger(), "bt msg received from %u with counter %u", received_id, received_counter);
+    RCLCPP_INFO(this->get_logger(), "bt msg received from %u with counter %f", received_id, received_counter);
 }
 
 void UserController::handleNotifyVehicles(const bluetooth_msgs::msg::NotifyVehicles::SharedPtr s)

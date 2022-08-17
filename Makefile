@@ -6,7 +6,8 @@ BAKE:=docker buildx bake --builder default --load --set *.platform=$(BUILDX_HOST
 IMAGE_NAME?=nicholascao2021/starling-controller
 NETWORK?=bridge
 ENV?=
-RUN_ARGS?=
+NODE_ID?=0
+RUN_ARGS?=-v /dev/ttyACM$(NODE_ID):/dev/ttyACM$(NODE_ID) --privileged -e VEHICLE_MAVLINK_SYSID=$(NODE_ID)
 
 all: build
 
@@ -33,10 +34,10 @@ local-build-push:
 run: build
 	docker run -it --rm --net=$(NETWORK) $(ENV) -e USE_SIMULATED_TIME=true $(RUN_ARGS) $(IMAGE_NAME)
 
+runonly:
+	docker run -it --rm --net=$(NETWORK) $(ENV) -e USE_SIMULATED_TIME=true $(RUN_ARGS) $(IMAGE_NAME)
+
 run_bash: build
 	docker run -it --rm --net=$(NETWORK) $(ENV) -e USE_SIMULATED_TIME=true $(RUN_ARGS) $(IMAGE_NAME) bash
-
-run_bt: build
-	docker run -it --rm --net=$(NETWORK) $(ENV) -e USE_SIMULATED_TIME=true -v /dev/ttyACM0:/dev/ttyACM0 $(RUN_ARGS) $(IMAGE_NAME)
 
 .PHONY: all build local-build-setup local-build-push run run_bash

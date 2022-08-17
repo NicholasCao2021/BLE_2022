@@ -268,7 +268,7 @@ void UAVController::stateMachine(const rclcpp::Time &stamp)
         {
         case State::INIT:
             // Initialisation steps before takeoff and execution
-            if (!false) // checks
+            if (!checks) // checks
             {
                 RCLCPP_INFO(this->get_logger(), "Initialisation Waiting on System Checks");
             }

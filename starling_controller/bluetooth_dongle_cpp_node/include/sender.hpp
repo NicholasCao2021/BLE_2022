@@ -14,6 +14,7 @@
 
 #include "slip.h"
 #include "serialport.h"
+#include "main.hpp"
 
 /*----------------------------------------------------------------------------*/
 #define VERSION "0.92"
@@ -23,34 +24,35 @@
 #define true !0
 #define false 0
 
-#define NUM_NODE 2
+// #define NUM_NODE 2
 #define BYTE_NUM_OF_TIMESTAMP 8
 
 /*----------------------------------------------------------------------------*/
 
 using namespace std;
 
-struct sequence
-{
-    int seq, state;
-};
-
 struct sequence_timeout
 {
     uint8_t Timestamp[BYTE_NUM_OF_TIMESTAMP], state, timeout;
 };
 
+class BtMsgTranciver;
+
 class Sender
 {
 
 public:
-    Sender();
+    Sender(BtMsgTranciver *Node);
+    BtMsgTranciver *node;
+    rclcpp::Logger get_logger();
+    rclcpp::Time now();
     void reset();
     int init(uint8_t node_id, std::string addr);
     void receive_single_packet(double ts);
     void update_data_map(std::vector<uint8_t> p_data, double ts);
     void send_packet(uint8_t data_len, uint8_t *data);
     void stop_atomic();
+
     uint8_t msg_len;
     uint8_t rx_buf[SERIAL_MSG_LEN];
     serial_msg_t *rx_pkt; // = (serial_msg_t *)rx_buf

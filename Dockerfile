@@ -35,6 +35,6 @@ RUN . /opt/ros/${ROS_DISTRO}/setup.sh \
     && rm -r build
 #--packages-select bluetooth_dongle_cpp_node
 
-
+COPY starling_controller/bluetooth_cpp_node.launch.xml /ros_ws/
 COPY starling_controller/run.sh /ros_ws
 CMD ["./run.sh"]

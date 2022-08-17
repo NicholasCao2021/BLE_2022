@@ -34,16 +34,24 @@ spec:
       - name: onboard-controller
         image: nicholascao2021/starling-controller
         imagePullPolicy: Always
+        securityContext: 
+          privileged: true
         volumeMounts:
         - mountPath: /etc/starling/vehicle.config
           name: vehicleconfig
           readOnly: true
+        - mountPath: /dev/ttyACM0
+          name: bluetooth
 
       volumes:
       - name: vehicleconfig
         hostPath:
           path: /etc/starling/vehicle.config
           type: File
+      
+      - name: bluetooth
+        hostPath:
+          path: /dev/ttyACM0
 ---
 
 # Central montior
@@ -76,12 +84,6 @@ spec:
         effect: NoSchedule
 
       containers:
-      - name: offboard-controller
-        image: nicholascao2021/starling-controller
-        imagePullPolicy: Always
-        env:
-          - name: OFFBOARD
-            value: "true"
       - name: starling-ui
         image: uobflightlabstarling/starling-ui-example:latest
         imagePullPolicy: Always

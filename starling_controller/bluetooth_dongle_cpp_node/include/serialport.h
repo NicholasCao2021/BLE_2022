@@ -67,7 +67,7 @@ extern "C"
   {
     uint8_t msg_type;
     uint8_t len;
-    uint8_t payload[128];
+    uint8_t payload[];
   } __packed_gcc serial_msg_t;
 
   typedef struct

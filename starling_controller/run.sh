@@ -22,6 +22,6 @@ if [ ! -v $OFFBOARD ]; then
     ros2 run bluetooth_python_node controller
 else
     echo "Running Onboard Controller"
-    # ros2 launch bluetooth_cpp_node bluetooth_cpp_node.launch.xml
-    ros2 launch bluetooth_dongle_cpp_node bluetooth_dongle_cpp_node.launch.xml
+    ros2 launch bluetooth_cpp_node.launch.xml
+    # ros2 launch bluetooth_dongle_cpp_node bluetooth_dongle_cpp_node.launch.xml
 fi
