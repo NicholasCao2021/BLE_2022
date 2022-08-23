@@ -1,16 +1,16 @@
 <launch>
     <arg name="vehicle_namespace" default="$(env VEHICLE_NAMESPACE vehicle_$(env VEHICLE_MAVLINK_SYSID))" />
 
-        <!-- <node name="controller" pkg="bluetooth_cpp_node" exec="controller" output="screen" respawn="true" namespace="$(var vehicle_namespace)">
+        <node name="controller" pkg="bluetooth_cpp_node" exec="controller" output="screen" namespace="$(var vehicle_namespace)">
             <param name="frame_id" value="map"/>
             <param name="setpoint_frame_id" value="$(var vehicle_namespace)/setpoint"/>
             <param name="vehicle_frame_id" value="$(var vehicle_namespace)/body"/>
             <param name="vehicle_id" value="$(var vehicle_namespace)"/>
         </node>
-             -->
+            
         <node name="sender" pkg="bluetooth_dongle_cpp_node" exec="sender" output="screen"  namespace="$(var vehicle_namespace)">
             <param name="bt_id" value="$(env VEHICLE_MAVLINK_SYSID)"/>
-            <param name="bluetooth_address" value="/dev/ttyACM$(env VEHICLE_MAVLINK_SYSID)"/>
+            <!-- <param name="bluetooth_address" value="/dev/ttyACM$(env VEHICLE_MAVLINK_SYSID)"/> -->
         </node>
 
 </launch>

@@ -1,6 +1,6 @@
 make --dry-run --always-make --keep-going --print-directory
-make: Entering directory '/home/cy/starling_controller'
+make: Entering directory '/home/flying/Desktop/starling_controller'
  
-docker buildx bake --builder default --load --set *.platform=linux/amd64 -f /home/cy/starling_controller/buildtools/docker-bake.hcl starling_controller
-make: Leaving directory '/home/cy/starling_controller'
+docker buildx bake --builder default --load --set *.platform=linux/amd64 -f /home/flying/Desktop/starling_controller/buildtools/docker-bake.hcl starling_controller
+make: Leaving directory '/home/flying/Desktop/starling_controller'
  

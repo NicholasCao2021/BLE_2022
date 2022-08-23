@@ -25,6 +25,7 @@
 #define false 0
 
 // #define NUM_NODE 2
+#define TIMEOUT_TREADHOLD 4
 #define BYTE_NUM_OF_TIMESTAMP 8
 
 /*----------------------------------------------------------------------------*/

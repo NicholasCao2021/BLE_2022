@@ -9,7 +9,7 @@ Sender::Sender(BtMsgTranciver *Node)
 	this->node_id = 0;
 	this->addr = "";
 	this->counter = 0;
-	this->period = 40; // ms
+	this->period = 30; // ms
 					   // std::string connection_status;
 }
 
@@ -18,7 +18,7 @@ int Sender::init(uint8_t id, std::string addr)
 	// stop_atomic();
 	// delay(100);
 	rx_pkt = (serial_msg_t *)rx_buf;
-	period = 40;
+	period = 30;
 	// init()
 	setbuf(stdout, NULL);
 
@@ -63,13 +63,13 @@ int Sender::init(uint8_t id, std::string addr)
 		 d..d   : array of bytes, length specified by offset (1+(16)), which are destination node IDs
 	*/
 
-	uint8_t init_cmd[24] = {0x00, 0x00, node_id, 0x01, 0x02, 0x7f, period & 0xFF, (period >> 8) & 0xFF,
+	uint8_t init_cmd[26] = {0x00, 0x00, node_id, 0x01, 0x02, 0x7f, period & 0xFF, (period >> 8) & 0xFF,
 							// reserved
 							0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
 							// sources
-							0x03, 0x01, 0x02, 0x03,
+							0x04, 0x01, 0x02, 0x03,0x04,
 							// destinations
-							0x03, 0x01, 0x02, 0x03};
+							0x04, 0x01, 0x02, 0x03,0x04};
 
 	// Initialise MAC configuration
 	send_slip_packet(SERIAL_MSG_CMD_MAC_CFG_WRITE, sizeof(init_cmd), init_cmd);
@@ -109,7 +109,7 @@ void Sender::reset()
 	node_id = 0;
 	addr = "";
 	counter = 0;
-	period = 40; // ms
+	period = 30; // ms
 	// connection_status = "Reset";
 	stop_atomic();
 }
@@ -160,14 +160,25 @@ void Sender::receive_single_packet(double ts)
 		if (rx_pkt->msg_type == SERIAL_MSG_RSP_ATMIC_DATA_RX && rx_pkt->len >= 6)
 		{
 			// printf("sender :: rx_pkt->msg_type %d msg_len %d\n", rx_pkt->msg_type, rx_pkt->len);
-			// printf("Got data len: %u from node %u!\n", msg_len, rx_pkt->payload[4]);
+			// printf("Got data len: %u from node %u!\n", rx_pkt->len, rx_pkt->payload[4]);
+			// RCLCPP_INFO(this->get_logger(), "Got data from node %u!", rx_pkt->payload[4]);
+			for(auto it=this->lost_nodes.begin();it!=this->lost_nodes.end();){
+				if(*it==rx_pkt->payload[4]){
+					// RCLCPP_INFO(this->get_logger(), "lost node %d reconnected!", *it);
+					it = this->lost_nodes.erase(it);
+					break;
+				}else{
+					++it;
+				}
+			}
 			if (umap.find(rx_pkt->payload[4]) == umap.end())
 			{
-				// printf("umap element size: %d", umap.size());
+				
 				umap.insert(pair<uint8_t, sequence_timeout>(rx_pkt->payload[4], {{0, 0, 0, 0, 0, 0, 0, 0}, 1, 0}));
 			}
+			// printf("umap element size: %d\n", umap.size());
 			// printf("received raw data: ");
-			for (int i = 4; i < (umap.size() * 2 + BYTE_NUM_OF_TIMESTAMP + 1 + 4); i++)
+			for (auto i = 4; i < (umap.size() * 2 + BYTE_NUM_OF_TIMESTAMP + 1 + 4); i++)
 			{
 				p_data.push_back(rx_pkt->payload[i]);
 				// printf("%u ", rx_pkt->payload[i]);
@@ -178,7 +189,10 @@ void Sender::receive_single_packet(double ts)
 	} while (rx_pkt->msg_type != SERIAL_MSG_RSP_OK);
 	// RCLCPP_INFO(this->get_logger(), "");
 	// RCLCPP_INFO(this->get_logger(), "============ update map ==========");
+	double secs = this->now().seconds();
 	update_data_map(p_data, ts);
+	double elps_time = this->now().seconds() - secs;
+    // RCLCPP_INFO(this->get_logger(), "update process time : %f", elps_time);
 	p_data.clear();
 }
 
@@ -189,7 +203,7 @@ void Sender::update_data_map(std::vector<uint8_t> p_data, double ts)
 	// printf("%u ", e);
 	// printf("data end size:%ld umap.size():%u \n", p_data.size(), umap.size());
 	// printf("packet id: %u %u\n", BTsender.rx_pkt->payload[3], BTsender.rx_pkt->payload[2]);
-	for (int i = 0; i < p_data.size(); i += (umap.size() * 2 + BYTE_NUM_OF_TIMESTAMP + 1))
+	for (auto i = 0; i < p_data.size(); i += (umap.size() * 2 + BYTE_NUM_OF_TIMESTAMP + 1))
 	{
 		uint8_t id_num = p_data[i]; // node_id
 		// memcpy(timestamp, &p_data[i+1], sizeof(timestamp));
@@ -223,15 +237,15 @@ void Sender::update_data_map(std::vector<uint8_t> p_data, double ts)
 		// 	umap.size()++;
 		// }
 
-		for (int j = BYTE_NUM_OF_TIMESTAMP + 1; j < (umap.size() * 2 + BYTE_NUM_OF_TIMESTAMP + 1); j += 2)
+		for (auto j = BYTE_NUM_OF_TIMESTAMP + 1; j < (umap.size() * 2 + BYTE_NUM_OF_TIMESTAMP + 1); j += 2)
 		{
 			uint8_t node_id_other = p_data[j + i];
 			uint8_t node_id_other_timeout = p_data[j + i + 1];
 			// printf("node_id_other %u node_id_other_timeout %u\n", node_id_other, node_id_other_timeout);
 			fd = umap.find(node_id_other);
-			if (fd != umap.end() && node_id_other_timeout > 20 && fd->second.timeout > 20)
+			if (fd != umap.end() && node_id_other_timeout > TIMEOUT_TREADHOLD && fd->second.timeout > TIMEOUT_TREADHOLD)
 			{
-				double dif = ts - *reinterpret_cast<double *>(fd->second.Timestamp);
+				// double dif = ts - *reinterpret_cast<double *>(fd->second.Timestamp);
 				// printf("found failed node id: %u in %lf nanosecond\n", node_id_other, dif);
 				this->lost_nodes.push_back(node_id_other);
 				fd->second.timeout = 30;
@@ -264,7 +278,7 @@ void Sender::update_data_map(std::vector<uint8_t> p_data, double ts)
 	*/
 	// RCLCPP_INFO(this->get_logger(), "timestamp: %f", ts);
 	char *byteArray = reinterpret_cast<char *>(&ts);
-	for (int i = 0; i < BYTE_NUM_OF_TIMESTAMP; i++)
+	for (auto i = 0; i < BYTE_NUM_OF_TIMESTAMP; i++)
 	{
 		p_data.push_back(*byteArray);
 		byteArray++;
@@ -283,10 +297,10 @@ void Sender::update_data_map(std::vector<uint8_t> p_data, double ts)
 	}
 	//, 0x02, 0x55, 0x66
 	// counter++;
-	// for (auto e : p_data)
-	// 	printf("%u ", e);
+	for (auto e : p_data)
+		printf("%u ", e);
 
-	// printf("\n");
+	printf("\n");
 	// byteArray = reinterpret_cast<char *>(&ts);
 	// double final = *reinterpret_cast<double *>(byteArray);
 	// printf("%lf\n", final);

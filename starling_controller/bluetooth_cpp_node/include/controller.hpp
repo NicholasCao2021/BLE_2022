@@ -12,6 +12,8 @@
 #include <atomic>
 #include <cmath>
 
+#include <std_msgs/msg/empty.hpp>
+
 #include <geometry_msgs/msg/point.hpp>
 #include <trajectory_msgs/msg/joint_trajectory_point.hpp>
 
@@ -53,7 +55,8 @@ private:
 
     // Publishers
     rclcpp::Publisher<bluetooth_msgs::msg::TargetAngle>::SharedPtr notify_angle_pub;
-
+    rclcpp::Publisher<std_msgs::msg::Empty>::SharedPtr vehicle_info_request_pub;
+    rclcpp::Publisher<bluetooth_msgs::msg::NotifyVehicles>::SharedPtr notify_vehicles_pub;
     // Subscriptions
     rclcpp::Subscription<bluetooth_msgs::msg::TargetAngle>::SharedPtr sync_angle_sub;
     rclcpp::Subscription<bluetooth_msgs::msg::NotifyVehicles>::SharedPtr notify_vehicles_sub;
@@ -66,12 +69,15 @@ private:
     void handleNotifyVehicles(const bluetooth_msgs::msg::NotifyVehicles::SharedPtr s);
     void handleReceivedBtMsg(const bluetooth_msgs::msg::BluetoothDongle::SharedPtr s);
 
+    // void handleNotifyVehicles(uint8_t *node_id, uint8_t *total_vehicle_num);
+
     // Variables
     geometry_msgs::msg::Point origin;
-    const double circle_radius = 1.5; // In meters
+    double circle_radius = 1.5; // In meters
     const double height = 1.0;
     uint8_t system_vehicle_id;
     uint8_t system_total_vehicles;
+    bool found_failed_node;
 
     // Received initial positions
     bool received_circle_id = false;

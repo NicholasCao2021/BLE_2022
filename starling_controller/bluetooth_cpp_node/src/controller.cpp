@@ -15,9 +15,14 @@ UserController::UserController(UAVController *node)
 {
     // Set node so this controller can refer back to it later
     this->node = node;
-
     // Initialise publishers
     this->notify_angle_pub = this->node->create_publisher<bluetooth_msgs::msg::TargetAngle>("/monitor/notify_angle", 1);
+    // request current vehicle id and total number
+    this->vehicle_info_request_pub = this->node->create_publisher<std_msgs::msg::Empty>("/monitor/vehicle_info", 1);
+    //reset initial takeoff point
+    this->notify_vehicles_pub = this->node->create_publisher<bluetooth_msgs::msg::NotifyVehicles>("notify_vehicles", 1);
+
+
 
     // Initialise Subscribers
     this->sync_angle_sub = this->node->create_subscription<bluetooth_msgs::msg::TargetAngle>(
@@ -48,6 +53,8 @@ bool UserController::smReady(const rclcpp::Time &stamp)
 {
     if (!this->received_circle_id)
     {
+        std_msgs::msg::Empty e;
+        this->vehicle_info_request_pub->publish(e);
         RCLCPP_INFO(this->get_logger(), "Waiting for Notify Vehicle message from central monitor");
         return false;
     }
@@ -122,14 +129,30 @@ void UserController::handleReceivedBtMsg(const bluetooth_msgs::msg::BluetoothDon
         this->system_vehicle_id--;
     s->total_vehicles--;
     */
-    RCLCPP_INFO(this->get_logger(), "bt msg received from %u with counter %f", received_id, received_counter);
+
+    if (received_id != 0){
+        if(!this->found_failed_node)
+        {
+            RCLCPP_INFO(this->get_logger(), "bt msg received from %u with counter %f", received_id, received_counter);
+            bluetooth_msgs::msg::NotifyVehicles NVs;
+            NVs.vehicle_id = this->system_vehicle_id;
+            if (this->system_vehicle_id > received_id)
+                NVs.vehicle_id--;
+            NVs.total_vehicles = this->system_total_vehicles - 1;
+            this->notify_vehicles_pub->publish(NVs);
+            this->found_failed_node = true;
+        }
+        else{
+            this->circle_radius = (this->circle_radius>2.0)?2.0:this->circle_radius+0.1;
+        }
+    }
 }
 
 void UserController::handleNotifyVehicles(const bluetooth_msgs::msg::NotifyVehicles::SharedPtr s)
 {
-
-    if (!this->node->start_trajectory_location)
-    {
+    RCLCPP_INFO(this->get_logger(), "update start_trajectory_location");
+    // if (!this->node->start_trajectory_location)
+    // {
         this->system_vehicle_id = s->vehicle_id;
         this->system_total_vehicles = s->total_vehicles;
         double start_target_theta = 2 * M_PI * s->vehicle_id / s->total_vehicles;
@@ -146,7 +169,8 @@ void UserController::handleNotifyVehicles(const bluetooth_msgs::msg::NotifyVehic
         this->vehicle_setpoint_theta = start_target_theta;
         this->vehicle_start_theta = start_target_theta;
         this->received_circle_id = true;
-    }
+        // RCLCPP_INFO(this->get_logger(), "reset start point");
+    // }
 }
 
 rclcpp::Logger UserController::get_logger() { return this->node->get_logger(); }

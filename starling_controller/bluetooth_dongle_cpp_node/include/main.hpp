@@ -11,7 +11,11 @@
 #include <set>
 
 #include "rclcpp/rclcpp.hpp"
+#include <std_msgs/msg/empty.hpp>
 #include "bluetooth_msgs/msg/bluetooth_dongle.hpp"
+#include "bluetooth_msgs/msg/notify_vehicles.hpp"
+
+
 
 #include "sender.hpp"
 
@@ -37,9 +41,9 @@ public:
     BtMsgTranciver();
     void reset();
     int initialize();
-    uint8_t bt_id;
+    
     std::string bluetooth_address;
-
+    uint8_t bt_id;
     // uint8_t queue[];
     // std::string env_p = std::String(std::getenv("VEHICLE_MAVLINK_SYSID"));
     // RCLCPP_INFO(this->get_logger(), "Publishing: '%s'", env_p);
@@ -47,9 +51,9 @@ public:
 
 private:
     std::shared_ptr<Sender> sender;
-
+    
     void timer_callback();
-    void timer_callback2();
+    void vehicle_info_callback(const std_msgs::msg::Empty::SharedPtr s);
     void btMsgs_callback(const bluetooth_msgs::msg::BluetoothDongle::SharedPtr s);
     void handleReceivedBtMsg(const bluetooth_msgs::msg::BluetoothDongle::SharedPtr s);
     // std::map<uint8_t, sequence_timeout> umap;
@@ -57,9 +61,14 @@ private:
     std::queue<uint8_t> uq;
     std::map<uint8_t, double> umap2;
 
-    rclcpp::Subscription<bluetooth_msgs::msg::BluetoothDongle>::SharedPtr subscription_;
     rclcpp::TimerBase::SharedPtr timer_;
+    rclcpp::TimerBase::SharedPtr timer_dump_;
+    rclcpp::TimerBase::SharedPtr timer_checker_;
     rclcpp::Publisher<bluetooth_msgs::msg::BluetoothDongle>::SharedPtr publisher_;
+    rclcpp::Publisher<bluetooth_msgs::msg::NotifyVehicles>::SharedPtr notify_vehicles_pub;
+     
+    rclcpp::Subscription<bluetooth_msgs::msg::BluetoothDongle>::SharedPtr subscription_;
+    rclcpp::Subscription<std_msgs::msg::Empty>::SharedPtr vehicle_info_request_sub;
 
     // std::vector<uint8_t> p_data;
     double count_;

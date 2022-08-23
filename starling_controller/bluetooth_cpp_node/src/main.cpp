@@ -270,7 +270,7 @@ void UAVController::stateMachine(const rclcpp::Time &stamp)
             // Initialisation steps before takeoff and execution
             if (!checks) // checks
             {
-                RCLCPP_INFO(this->get_logger(), "Initialisation Waiting on System Checks");
+                // RCLCPP_INFO(this->get_logger(), "Initialisation Waiting on System Checks");
             }
             else if (!this->missionGoPressed(stamp))
             {
@@ -355,7 +355,8 @@ void UAVController::stateMachine(const rclcpp::Time &stamp)
     catch (const std::exception &e)
     {
         string message = e.what();
-        RCLCPP_ERROR(this->get_logger(), "%s", message.c_str());
+        double ts = this->now().seconds();
+        RCLCPP_ERROR(this->get_logger(), "%s at %lf", message.c_str(),ts);
         this->execution_state = State::STOP;
     }
 
@@ -371,7 +372,7 @@ bool UAVController::smChecks(const rclcpp::Time &stamp)
 {
     if (!vehicle_state || stamp - this->last_received_vehicle_state > this->state_timeout)
     {
-        RCLCPP_WARN(this->get_logger(), "Waiting for vehicle state data");
+        // RCLCPP_WARN(this->get_logger(), "Waiting for vehicle state data");
         // State timeout
         return false;
     }
