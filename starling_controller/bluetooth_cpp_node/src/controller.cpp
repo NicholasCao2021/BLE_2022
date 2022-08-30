@@ -78,9 +78,11 @@ bool UserController::smExecute(const rclcpp::Time &stamp, const rclcpp::Duration
 
     // Get Angular (Theta) Velocity
     double angular_vel = this->vehicle_velocity / circle_radius;
+    RCLCPP_INFO(this->get_logger(), "Vehicle angular velocity: %f", angular_vel);
 
     // Amount of theta vehicle should have moved w.r.t start location
     this->vehicle_setpoint_theta = fmod(this->vehicle_start_theta + time_elapsed_sec * angular_vel, 2 * M_PI);
+    RCLCPP_INFO(this->get_logger(), "vehicle_setpoint_theta: %f", this->vehicle_setpoint_theta);
 
     // Convert theta to coordinate location
     double x = this->circle_radius * cos(this->vehicle_setpoint_theta) + this->origin.x;
@@ -123,6 +125,7 @@ void UserController::handleReceivedBtMsg(const bluetooth_msgs::msg::BluetoothDon
     double received_counter = s->test_num;
     /*
 
+        able to receive all x y position and timestamp
     send a msg to handleNotifyVehicles and reset start_target_theta
 
     if(this->system_vehicle_id > received_id)
@@ -130,9 +133,8 @@ void UserController::handleReceivedBtMsg(const bluetooth_msgs::msg::BluetoothDon
     s->total_vehicles--;
     */
 
-    if (received_id != 0){
-        if(!this->found_failed_node)
-        {
+    if(!this->found_failed_node){
+        if (received_id != 0){
             RCLCPP_INFO(this->get_logger(), "bt msg received from %u with counter %f", received_id, received_counter);
             bluetooth_msgs::msg::NotifyVehicles NVs;
             NVs.vehicle_id = this->system_vehicle_id;
@@ -140,10 +142,8 @@ void UserController::handleReceivedBtMsg(const bluetooth_msgs::msg::BluetoothDon
                 NVs.vehicle_id--;
             NVs.total_vehicles = this->system_total_vehicles - 1;
             this->notify_vehicles_pub->publish(NVs);
+            this->circle_radius = 2.0;
             this->found_failed_node = true;
-        }
-        else{
-            this->circle_radius = (this->circle_radius>2.0)?2.0:this->circle_radius+0.1;
         }
     }
 }

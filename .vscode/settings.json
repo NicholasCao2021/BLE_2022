@@ -43,7 +43,18 @@
         "utility": "cpp",
         "functional": "cpp",
         "errno.h": "c",
-        "cstring": "cpp"
+        "cstring": "cpp",
+        "bit": "cpp",
+        "cstdarg": "cpp",
+        "cstddef": "cpp",
+        "map": "cpp",
+        "set": "cpp",
+        "algorithm": "cpp",
+        "iterator": "cpp",
+        "memory_resource": "cpp",
+        "numeric": "cpp",
+        "random": "cpp",
+        "string": "cpp"
     },
     "C_Cpp.errorSquiggles": "Disabled"
 }

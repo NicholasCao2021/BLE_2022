@@ -128,7 +128,7 @@ void Sender::stop_atomic()
 	} while (rx_pkt->msg_type != SERIAL_MSG_RSP_OK);
 }
 
-void Sender::receive_single_packet(double ts)
+void Sender::receive_single_packet(uint8_t *data_byte1,uint8_t *data_byte2, uint8_t data_len1, uint8_t data_len2)
 {
 	// Poll Atomic and wait for responses
 	send_slip_packet(SERIAL_MSG_CMD_ATOMIC_POLL, 0, NULL);
@@ -177,11 +177,11 @@ void Sender::receive_single_packet(double ts)
 				umap.insert(pair<uint8_t, sequence_timeout>(rx_pkt->payload[4], {{0, 0, 0, 0, 0, 0, 0, 0}, 1, 0}));
 			}
 			// printf("umap element size: %d\n", umap.size());
-			// printf("received raw data: ");
-			for (auto i = 4; i < (umap.size() * 2 + BYTE_NUM_OF_TIMESTAMP + 1 + 4); i++)
+			printf("received raw data with size %d: ",umap.size() * 2 + data_len1 + data_len2 + 1);
+			for (auto i = 4; i < (umap.size() * 2 + data_len1 + data_len2 + 4 + 1); i++)
 			{
 				p_data.push_back(rx_pkt->payload[i]);
-				// printf("%u ", rx_pkt->payload[i]);
+				printf("%u ", rx_pkt->payload[i]);
 			}
 			// printf("data end size:%ld umap.size():%u \n", p_data.size(), umap.size());
 		}
@@ -190,20 +190,21 @@ void Sender::receive_single_packet(double ts)
 	// RCLCPP_INFO(this->get_logger(), "");
 	// RCLCPP_INFO(this->get_logger(), "============ update map ==========");
 	double secs = this->now().seconds();
-	update_data_map(p_data, ts);
+	update_data_map(p_data, data_byte1,data_byte2, data_len1,data_len2);
 	double elps_time = this->now().seconds() - secs;
     // RCLCPP_INFO(this->get_logger(), "update process time : %f", elps_time);
 	p_data.clear();
 }
 
-void Sender::update_data_map(std::vector<uint8_t> p_data, double ts)
+void Sender::update_data_map(std::vector<uint8_t> p_data, uint8_t *data_byte1,uint8_t *data_byte2, uint8_t data_len1, uint8_t data_len2)
 {
 	// printf("received data: ");
 	// for (auto e : p_data)
 	// printf("%u ", e);
 	// printf("data end size:%ld umap.size():%u \n", p_data.size(), umap.size());
 	// printf("packet id: %u %u\n", BTsender.rx_pkt->payload[3], BTsender.rx_pkt->payload[2]);
-	for (auto i = 0; i < p_data.size(); i += (umap.size() * 2 + BYTE_NUM_OF_TIMESTAMP + 1))
+	double x, y;
+	for (auto i = 0; i < p_data.size(); i += (umap.size() * 2 + data_len1 + data_len2 + 1))
 	{
 		uint8_t id_num = p_data[i]; // node_id
 		// memcpy(timestamp, &p_data[i+1], sizeof(timestamp));
@@ -226,9 +227,22 @@ void Sender::update_data_map(std::vector<uint8_t> p_data, double ts)
 		auto fd = umap.find(id_num);
 		if (fd != umap.end())
 		{
-			memcpy(fd->second.Timestamp, &p_data[i + 1], BYTE_NUM_OF_TIMESTAMP);
+			memcpy(&fd->second, &p_data[i +  1], BYTE_NUM_OF_DOUBLE);
+			memcpy(&fd->second.position_x, &p_data[i + BYTE_NUM_OF_DOUBLE + 1],     BYTE_NUM_OF_DOUBLE);
+			memcpy(&fd->second.position_y, &p_data[i + 2 * BYTE_NUM_OF_DOUBLE + 1], BYTE_NUM_OF_DOUBLE);
+			fd->second.state = p_data[i + data_len1 + 1];
+			// RCLCPP_INFO(this->get_logger(), "receive msg BLE state position: %u state: %u", i + data_len1 + 1,fd->second.state);
+			if(fd->second.state == ONLYBLUETOOTH){
+				// if(this->resecure_nodes.back() != id_num){
+					this->resecure_nodes.push_back(id_num);
+					printf("\n node %u added",id_num);
+				// }
+					
+
+			}
+			x = *reinterpret_cast<double *>(&fd->second.position_x);
+			y = *reinterpret_cast<double *>(&fd->second.position_y);
 			// fd->second.Timestamp = timestamp;
-			fd->second.state = 2;
 			fd->second.timeout = 0;
 		}
 		// else if (id_num != 0)
@@ -237,7 +251,7 @@ void Sender::update_data_map(std::vector<uint8_t> p_data, double ts)
 		// 	umap.size()++;
 		// }
 
-		for (auto j = BYTE_NUM_OF_TIMESTAMP + 1; j < (umap.size() * 2 + BYTE_NUM_OF_TIMESTAMP + 1); j += 2)
+		for (size_t j = data_len1 * BYTE_NUM_OF_DOUBLE + data_len2 * BYTE_NUM_OF_UINT8 + 1; j < (umap.size() * 2 + data_len1 * BYTE_NUM_OF_DOUBLE + data_len2 * BYTE_NUM_OF_UINT8 + 1); j += 2)
 		{
 			uint8_t node_id_other = p_data[j + i];
 			uint8_t node_id_other_timeout = p_data[j + i + 1];
@@ -245,12 +259,14 @@ void Sender::update_data_map(std::vector<uint8_t> p_data, double ts)
 			fd = umap.find(node_id_other);
 			if (fd != umap.end() && node_id_other_timeout > TIMEOUT_TREADHOLD && fd->second.timeout > TIMEOUT_TREADHOLD)
 			{
-				// double dif = ts - *reinterpret_cast<double *>(fd->second.Timestamp);
+				// double dif = data_byte - *reinterpret_cast<double *>(fd->second.Timestamp);
 				// printf("found failed node id: %u in %lf nanosecond\n", node_id_other, dif);
-				this->lost_nodes.push_back(node_id_other);
+				// if(this->lost_nodes.back() != node_id_other)
+					this->lost_nodes.push_back(node_id_other);
 				fd->second.timeout = 30;
 			}
 		}
+		RCLCPP_INFO(this->get_logger(), "receive msg from id: %u at position (%f,%f)", id_num,x,y);
 	}
 	p_data.clear();
 	// for (auto e : umap)
@@ -276,14 +292,28 @@ void Sender::update_data_map(std::vector<uint8_t> p_data, double ts)
 	   ....
 
 	*/
-	// RCLCPP_INFO(this->get_logger(), "timestamp: %f", ts);
-	char *byteArray = reinterpret_cast<char *>(&ts);
-	for (auto i = 0; i < BYTE_NUM_OF_TIMESTAMP; i++)
-	{
-		p_data.push_back(*byteArray);
-		byteArray++;
+	// RCLCPP_INFO(this->get_logger(), "timestamp: %f", *reinterpret_cast<double *>(data_byte1));
+	// char *byteArray = reinterpret_cast<char *>(&data_byte);
+	// for(auto i = 0)
+	// for (auto i = 0; i < BYTE_NUM_OF_DOUBLE; i++)
+	// {
+	// 	p_data.push_back(*byteArray);
+	// 	byteArray++;
+	// }
+	printf("\ndata to transfer               : ");
+	for(auto i = 0;i<data_len1;++i){
+	    // char *byteArray = reinterpret_cast<char *>(&data_byte[i]);
+			p_data.push_back(*data_byte1);
+			// printf("%d ", *data_byte);
+			data_byte1++;
 	}
-
+	for(auto i = 0;i<data_len2;++i){
+	    // char *byteArray = reinterpret_cast<char *>(&data_byte[i]);
+			p_data.push_back(*data_byte2);
+			// printf("%d ", *data_byte);
+			data_byte2++;
+	}
+	// printf("\n");
 	// p_data.push_back(*byteArray++);
 	for (auto it = umap.begin(); it != umap.end(); ++it)
 	{
@@ -299,9 +329,8 @@ void Sender::update_data_map(std::vector<uint8_t> p_data, double ts)
 	// counter++;
 	for (auto e : p_data)
 		printf("%u ", e);
-
 	printf("\n");
-	// byteArray = reinterpret_cast<char *>(&ts);
+	// byteArray = reinterpret_cast<char *>(&data_byte);
 	// double final = *reinterpret_cast<double *>(byteArray);
 	// printf("%lf\n", final);
 	send_packet(p_data.size(), &p_data[0]);

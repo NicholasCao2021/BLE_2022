@@ -170,6 +170,7 @@ private:
     rclcpp::Subscription<std_msgs::msg::Empty>::SharedPtr mission_start_sub;
     rclcpp::Subscription<std_msgs::msg::Empty>::SharedPtr mission_abort_sub;
     rclcpp::Subscription<std_msgs::msg::Empty>::SharedPtr estop_sub;
+    rclcpp::Subscription<std_msgs::msg::Empty>::SharedPtr estop_self_sub;
     rclcpp::Subscription<mavros_msgs::msg::State>::SharedPtr state_sub;
     rclcpp::Subscription<geometry_msgs::msg::PoseStamped>::SharedPtr local_position_sub;
 

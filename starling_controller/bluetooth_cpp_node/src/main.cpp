@@ -88,8 +88,19 @@ UAVController::UAVController() : Node("trajectory_handler",
             mission_stop_received = true;
             RCLCPP_ERROR(this->get_logger(), "EMERGENCY STOP RECIEVED, Stopping");
         }
+        },
+        sub_opt);
+    this->estop_self_sub = this->create_subscription<std_msgs::msg::Empty>(
+        "emergency_stop_self", 10, [this](const std_msgs::msg::Empty::SharedPtr s)
+        {(void)s;
+        if(!mission_stop_received ){
+            this->execution_state = State::STOP;
+            mission_stop_received = true;
+            RCLCPP_ERROR(this->get_logger(), "EMERGENCY STOP RECIEVED, Stopping");
+        }
         this->emergency_stop(); },
         sub_opt);
+    
 
     // Mavros Subscribers
     this->state_sub = this->create_subscription<mavros_msgs::msg::State>(
@@ -322,7 +333,7 @@ void UAVController::stateMachine(const rclcpp::Time &stamp)
 
         case State::EXECUTE:
             this->smOffboardArmed(stamp);
-            if (this->smExecute(stamp))
+            if (this->smExecute(stamp) )
             {
                 this->execution_state = State::LAND;
             }

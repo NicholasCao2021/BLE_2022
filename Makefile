@@ -29,7 +29,7 @@ local-build-setup:
 	docker buildx inspect --bootstrap
 
 local-build-push:
-	docker buildx bake --builder mybuilder -f $(BAKE_SCRIPT) --push starling-controller
+	docker buildx bake --builder mybuilder -f $(BAKE_SCRIPT) --push starling_controller
 
 run: build
 	docker run -it --rm --net=$(NETWORK) $(ENV) -e USE_SIMULATED_TIME=true $(RUN_ARGS) $(IMAGE_NAME)

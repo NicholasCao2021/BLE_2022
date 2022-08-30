@@ -26,7 +26,12 @@
 
 // #define NUM_NODE 2
 #define TIMEOUT_TREADHOLD 4
-#define BYTE_NUM_OF_TIMESTAMP 8
+#define BYTE_NUM_OF_STATE 1
+#define BYTE_NUM_OF_UINT8 1
+#define BYTE_NUM_OF_INT 4
+#define BYTE_NUM_OF_DOUBLE 8
+#define BOTHNODEANDBLE 0x10
+#define ONLYBLUETOOTH 0x11
 
 /*----------------------------------------------------------------------------*/
 
@@ -34,7 +39,7 @@ using namespace std;
 
 struct sequence_timeout
 {
-    uint8_t Timestamp[BYTE_NUM_OF_TIMESTAMP], state, timeout;
+    uint8_t Timestamp[BYTE_NUM_OF_DOUBLE],position_x[BYTE_NUM_OF_DOUBLE],position_y[BYTE_NUM_OF_DOUBLE], state, timeout;
 };
 
 class BtMsgTranciver;
@@ -49,8 +54,8 @@ public:
     rclcpp::Time now();
     void reset();
     int init(uint8_t node_id, std::string addr);
-    void receive_single_packet(double ts);
-    void update_data_map(std::vector<uint8_t> p_data, double ts);
+    void receive_single_packet(uint8_t *data_byte1,uint8_t *data_byte2, uint8_t data_len1, uint8_t data_len2);
+    void update_data_map(std::vector<uint8_t> p_data, uint8_t *data_byte1,uint8_t *data_byte2, uint8_t data_len1, uint8_t data_len2);
     void send_packet(uint8_t data_len, uint8_t *data);
     void stop_atomic();
 
@@ -67,5 +72,6 @@ public:
     int counter = 1;
     uint16_t period; // ms
     std::vector<int> lost_nodes;
+    std::vector<int> resecure_nodes;
 };
 #endif
